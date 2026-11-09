@@ -78,6 +78,10 @@ class Theme:
     r_row: int
     r_tag: int
     r_knob: int
+    # optional colour per workflow step (1 Detect … 4 Draw Cracks): (fill, hover, light text) — badge, main
+    # button and links of that step's card use it; None = everything uses `accent`
+    steps: tuple[tuple[str, str, str], ...] | None = None
+    slider_fill: tuple[str, str] | None = None   # gradient (left, right) of the filled slider part
 
 
 THEMES: dict[str, Theme] = {
@@ -102,12 +106,17 @@ THEMES: dict[str, Theme] = {
         on_accent="#070a14", link="#a8ecff", link_hover="#d2f6ff", link_dis="#4a5580",
         sec="#202a48", sec_line="#3e4b78", sec_text="#f3f6ff", sec_hover="#2b375e",
         dis_bg="#111729", dis_fg="#5c6690", dis_line="#232c4a", list_bg="#060914", sel="#3646a8",
-        sel_text="#ffffff", tag="#1e2d58", tag_text="#a8ecff", badge_idle="#2c3760", badge_text="#e2e7ff",
+        sel_text="#ffffff", tag="#0f3a38", tag_text="#5fe0c6", badge_idle="#2c3760", badge_text="#e2e7ff",
         more="#202a48", more_text="#c0c8e4", more_hover="#2e3a64", track="#2c3760", knob="#ffffff",
         canvas="#04060c", viewer="#04060c", icon="#f3f6ff", icon_active="#a8ecff", icon_dis="#5c6690",
         ov_card="#161e36", ov_title="#ffffff", ov_msg="#c0c8e4", ov_time="#aab3d4",
         ov_track="#1ef3f6ff",
-        r_card=0, r_btn=0, r_start=0, r_badge=0, r_list=0, r_row=0, r_tag=0, r_knob=0),
+        r_card=0, r_btn=0, r_start=0, r_badge=0, r_list=0, r_row=0, r_tag=0, r_knob=0,
+        steps=(("#ffb547", "#ffc870", "#ffd08a"),      # 1 Detect: amber
+               ("#38d2b4", "#5fe0c6", "#7ae6d0"),      # 2 Segmentation: teal
+               ("#9ba6ff", "#b6beff", "#c4caff"),      # 3 Assign Classes: violet
+               ("#ff5c5c", "#ff7f7f", "#ff9a9a")),     # 4 Draw Cracks: red
+        slider_fill=("#9ba6ff", "#38d2b4")),
     "nordic": Theme(
         key="nordic", dark=False, styled=True, font="IBM Plex Sans", head_font="IBM Plex Mono", head_px=12,
         upper_titles=True,
@@ -225,6 +234,7 @@ QLabel#StartTitle {{ font-size: 26px; font-weight: 600; }}
 QLabel#StartSub {{ color: {t.muted}; font-size: 13px; }}
 QLabel#StartCaption {{ color: {t.muted}; font-size: 11px; }}
 QLabel#Muted {{ color: {t.muted}; }}
+QLabel#SettingsHeading {{ font-weight: 600; font-size: 13px; }}
 QPushButton#StartLink {{ color: {t.link}; background: transparent; border: none; }}
 QPushButton#StartLink:hover {{ color: {t.link_hover}; }}
 
@@ -257,18 +267,34 @@ QPushButton#More:disabled {{ color: {t.link_dis}; background: transparent; }}
 QPushButton#More::menu-indicator {{ width: 0; image: none; }}
 """
     if t.styled:
+        fill = (f"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {t.slider_fill[0]}, stop:1 {t.slider_fill[1]})"
+                if t.slider_fill else t.accent)
+        knob_line = t.slider_fill[1] if t.slider_fill else t.accent
         css += f"""
 QMenuBar {{ background: {t.menu}; }}
 QStatusBar {{ background: {t.menu}; }}
 QToolTip {{ background: {t.card}; color: {t.text}; border: 1px solid {t.line}; padding: 4px; }}
 QSlider {{ min-height: 18px; }}
 QSlider::groove:horizontal {{ height: 4px; background: {t.track}; border-radius: 0px; }}
-QSlider::sub-page:horizontal {{ background: {t.accent}; border-radius: 0px; }}
+QSlider::sub-page:horizontal {{ background: {fill}; border-radius: 0px; }}
 QSlider::add-page:horizontal {{ background: {t.track}; border-radius: 0px; }}
 QSlider::handle:horizontal {{ width: 12px; height: 12px; margin: -6px 0; background: {t.knob};
-    border: 2px solid {t.accent}; border-radius: {t.r_knob}px; }}
+    border: 2px solid {knob_line}; border-radius: {t.r_knob}px; }}
 QSlider::sub-page:horizontal:disabled {{ background: {t.dis_line}; }}
 QSlider::handle:horizontal:disabled {{ background: {t.dis_bg}; border-color: {t.dis_line}; }}
+"""
+    for n, (c, hover, light) in enumerate(t.steps or (), start=1):
+        sec = f'#Panel QFrame#Section[step="{n}"]'
+        # :enabled keeps the general :disabled look (these selectors are more specific)
+        css += f"""
+{sec} QLabel#Badge[active="true"] {{ background: {c}; color: {t.on_accent}; }}
+{sec} QPushButton[role="primary"]:enabled {{ background: {c}; color: {t.on_accent}; border-color: {c}; }}
+{sec} QPushButton[role="primary"]:enabled:hover {{ background: {hover}; border-color: {hover}; }}
+{sec} QPushButton[role="secondary"]:enabled:hover {{ border-color: {c}; }}
+{sec} QPushButton:checked:enabled {{ background: {c}; color: {t.on_accent}; border-color: {c}; }}
+{sec} QPushButton#Link:enabled {{ color: {light}; }}
+{sec} QPushButton#Link:enabled:hover {{ color: {hover}; }}
+{sec} QPushButton#Link:checked:enabled {{ color: {t.on_accent}; background: {c}; }}
 """
     return css
 

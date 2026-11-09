@@ -55,6 +55,10 @@ def main():
     set_default_format()                     # before the QApplication: OpenGL 3.3 compatibility, MSAA (3D viewer)
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
+    from pathlib import Path
+
+    from PySide6.QtGui import QIcon
+    app.setWindowIcon(QIcon(str(Path(__file__).resolve().parent / "assets" / "icon.svg")))   # window + taskbar
     app.setStyle("Fusion")
     # palette, font and style sheet come from the chosen theme (ui/theme.py, applied by MainWindow)
     from .ui.main_window import MainWindow

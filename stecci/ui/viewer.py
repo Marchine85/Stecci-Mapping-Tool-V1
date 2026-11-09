@@ -54,7 +54,11 @@ void main(){
     vec4 sc = texelFetch(segColor, s);
     if (showFill) c = mix(c, sc.rgb, sc.a * opacity);
     uint fl = texelFetch(segFlag, s).r;
-    if ((fl & 1u) != 0u) c = mix(c, vec3(1.0, 0.85, 0.1), 0.55);
+    if ((fl & 1u) != 0u) {
+      // selected: black diagonal crosshatch in screen pixels, like the photo workspace
+      vec2 f = gl_FragCoord.xy;
+      if (mod(f.x + f.y, 9.0) < 2.0 || mod(f.x - f.y, 9.0) < 2.0) c = mix(c, vec3(0.0), 0.82);
+    }
     else if ((fl & 2u) != 0u) c = mix(c, vec3(1.0), 0.18);
     if (showCrack && (v & %d) != 0) c = crackColor;
   }
@@ -195,7 +199,7 @@ class Viewer(QOpenGLWidget):
         self._pages = []                              # (texture id or 0, base face, count)
         self._order = None                            # draw index -> face id
         self._rank = None                             # face id -> draw index
-        self._n_lines = {"seg": 0, "outline": 0}
+        self._n_lines = {"seg": 0, "outline": 0, "sel": 0}
         self.opts = dict(opacity=0.5, dim=1.0, show_fill=True, show_crack=True, show_bound=True,
                          shade=0.35, crack_color=(230, 30, 30), bound_color=(57, 255, 20),
                          outline_color=(255, 20, 200), bound_width=2.0, show_outline=True)
@@ -236,7 +240,7 @@ class Viewer(QOpenGLWidget):
                     GL.glDeleteTextures([t])
             self.doneCurrent()
         self._pages = []
-        self._n_lines = {"seg": 0, "outline": 0}
+        self._n_lines = {"seg": 0, "outline": 0, "sel": 0}
         self.update()
 
     def _upload_scan(self):
@@ -295,7 +299,7 @@ class Viewer(QOpenGLWidget):
         self._set_buffer(self._face_tbo, np.full(scan.n_faces, -1, np.int32))
         self._set_buffer(self._seg_tbo, np.zeros((1, 4), np.uint8))
         self._set_buffer(self._flag_tbo, np.zeros(1, np.uint8))
-        self._n_lines = {"seg": 0, "outline": 0}
+        self._n_lines = {"seg": 0, "outline": 0, "sel": 0}
 
     def _set_buffer(self, tbo, data: np.ndarray):
         buf, tex, fmt = tbo
@@ -387,7 +391,7 @@ class Viewer(QOpenGLWidget):
         self._vbo = list(GL.glGenBuffers(3))
         self._ebo = GL.glGenBuffers(1)
         self._line_vao = GL.glGenVertexArrays(1)
-        self._line_vbo = {"seg": GL.glGenBuffers(1), "outline": GL.glGenBuffers(1)}
+        self._line_vbo = {"seg": GL.glGenBuffers(1), "outline": GL.glGenBuffers(1), "sel": GL.glGenBuffers(1)}
 
         def tbo(fmt):
             return (GL.glGenBuffers(1), GL.glGenTextures(1), fmt)
@@ -457,7 +461,8 @@ class Viewer(QOpenGLWidget):
             GL.glUniformMatrix4fv(u["mvp"], 1, GL.GL_TRUE, mvp.astype(np.float32))
             GL.glBindVertexArray(self._line_vao)
             for which, show, colour, width in (("seg", o["show_bound"], o["bound_color"], o["bound_width"]),
-                                               ("outline", o["show_outline"], o["outline_color"], 2.0)):
+                                               ("outline", o["show_outline"], o["outline_color"], 2.0),
+                                               ("sel", True, (0, 0, 0), 3.0)):     # selection outline
                 n = self._n_lines[which]
                 if not show or n == 0:
                     continue

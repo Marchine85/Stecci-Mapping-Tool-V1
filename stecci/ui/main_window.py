@@ -74,6 +74,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.ws3d)
         self.setCentralWidget(self.stack)
         self.overlay = BusyOverlay(self.stack)
+        self.overlay.style = self.settings.spinner
         self.setAcceptDrops(True)
 
         self.runner.busy_changed.connect(self._on_busy)
@@ -386,6 +387,7 @@ class MainWindow(QMainWindow):
         reload = any(getattr(new, k) != getattr(old, k) for k in model_keys)
         self.settings = new
         self.models.settings = new
+        self.overlay.style = new.spinner
         self.save_settings()
         for ws in (self.ws2d, self.ws3d):
             ws.settings_changed(old, new)

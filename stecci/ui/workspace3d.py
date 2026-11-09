@@ -21,13 +21,12 @@ from .export_dialog import ExportDialog
 from .legend import qimage_to_rgba, render_legend
 from .viewer import Viewer
 from .widgets import Section, capitalize_words, color_icon, set_role
-from .workspace import Workspace
+from .workspace import ASSIGN_HINT, Workspace
 
 SCAN_FILTER = "3D scans (" + " ".join(f"*{e}" for e in SCAN_EXTS) + ")"
 PROJECT_FILTER = f"Stecci 3D project (*{PROJECT_EXT_3D})"
-NAV_HINT = ("Middle-Drag / Alt+Drag / Drag Beside The Stone: Rotate · Shift+Middle-Drag: Pan · Wheel: Zoom · "
-            "Double-Click: Rotate Around Point")
-BRUSH_LIMITS = {"crack": (5, 1, 30), "paint": (50, 6, 200)}
+NAV_HINT = "Middle-Drag: Rotate · Shift+Middle-Drag: Pan\nMouse Wheel: Zoom"
+BRUSH_LIMITS = {"crack": (5, 1, 30), "paint": (50, 5, 100)}
 DEFAULT_DISPLAY = {"boundary_color": [57, 255, 20], "boundary_thickness": 2, "outline_color": [255, 20, 200],
                    "crack_color": [230, 30, 30], "dim_strength": 80, "shading": 35}
 
@@ -42,7 +41,7 @@ The ground cut height and the <b>scale</b> (true stone length → areas in m²) 
 The stone is flattened and segmented in the background with the photo method; only the outlines appear on the model.
 <b>Split Segments Manually</b> (X): draw across a segment.</li>
 <li><b>Assign classes</b>: pick a class (keys 0–9), click or drag over segments. Right-click = unassign.
-Ctrl+click / Ctrl+drag = select, <b>M</b> = merge. <b>Shift+drag</b> brushes the active class, Shift+right-drag brushes Unassigned/Stone,
+Ctrl+left click / drag = select, Ctrl+right = unselect, <b>M</b> = merge. <b>Shift+drag</b> brushes the active class, Shift+right-drag brushes Unassigned/Stone,
 Shift+wheel = brush size.</li>
 <li><b>Draw cracks</b> (B): left-drag paints, right-drag erases. Ctrl+wheel = brush size.</li>
 <li><b>Export</b> (Ctrl+E): <i>name</i>.png (the current view), <i>name</i>_views.png (six views), <i>name</i>.glb (the stone with
@@ -529,7 +528,20 @@ class ScanWorkspace(Workspace):
         self.viewer.set_segment_colors(rgba, flags)
 
     _refresh_class_colours = _refresh_colors
-    _refresh_selection_view = _refresh_colors
+
+    def _refresh_selection_view(self):
+        """Ctrl-selection changed: crosshatch (segment flags), black outline and the hint text, as in 2D."""
+        p = self.project
+        if not p.has_scan:
+            return
+        n = int(p.seg.max()) + 1 if p.seg is not None else 0
+        self.selected = {s for s in self.selected if 0 < s < n}
+        edges = (SF.selection_edges(p.scan, p.seg, p.stone, self.selected) if self.selected and p.seg is not None
+                 else np.zeros((0, 2), np.int32))
+        self.viewer.set_lines("sel", p.scan.P, edges)
+        k = len(self.selected)
+        self.sel_label.setText(f"{k} Segments Selected · M: Merge · Esc: Clear" if k else ASSIGN_HINT)
+        self._refresh_colors()
 
     def _class_area_stats(self):
         p = self.project
@@ -585,6 +597,7 @@ class ScanWorkspace(Workspace):
 
     def refresh_all(self):
         self._refresh_surface()
+        self._refresh_selection_view()           # outline + hint follow the (often just cleared) selection
         self._refresh_classes()
         self._refresh_stone_info()
         self._update_enabled()

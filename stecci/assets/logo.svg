@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>Stecci Mapping Tool</title>
+  <g transform="translate(128,128) scale(1.32) translate(-128,-146)">
+    <!-- flat single-colour stećak silhouette; the tiles sit in cut-outs (negative-space ring) -->
+    <path fill="#1b2236" fill-rule="evenodd" d="M80,196 L176,196 Q186,196 186,186 L186,106 Q186,100 180,97 L136,71 Q128,66 120,71 L76,97 Q70,100 70,106 L70,186 Q70,196 80,196 Z M89,127 h34 v34 h-34 Z M133,103 h34 v34 h-34 Z M129,153 h34 v34 h-34 Z"/>
+    <!-- plinth, separated from the slab by a thin gap -->
+    <path fill="#1b2236" d="M58,206 L198,206 Q203,206 203,211 L203,221 Q203,226 198,226 L58,226 Q53,226 53,221 L53,211 Q53,206 58,206 Z"/>
+    <!-- three mapping tiles in the app's step colours -->
+    <rect x="94" y="132" width="24" height="24" fill="#2ee6c2"/>
+    <rect x="138" y="108" width="24" height="24" fill="#a3adff"/>
+    <rect x="134" y="158" width="24" height="24" fill="#ffb02e"/>
+  </g>
+</svg>

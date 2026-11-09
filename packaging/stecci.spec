@@ -21,8 +21,8 @@ a = Analysis(
     # PyOpenGL picks its platform module at run time; trimesh loads exchange formats lazily
     hiddenimports=collect_submodules("OpenGL.platform") + collect_submodules("OpenGL.arrays")
                   + collect_submodules("trimesh.exchange") + ["fast_simplification"],
-    # UI fonts of the themes (ui/theme.py loads them from stecci/assets/fonts)
-    datas=collect_data_files("trimesh") + [(str(ROOT / "stecci" / "assets" / "fonts"), "stecci/assets/fonts")],
+    # UI fonts of the themes (ui/theme.py) and the logo / window icon (stecci/assets)
+    datas=collect_data_files("trimesh") + [(str(ROOT / "stecci" / "assets"), "stecci/assets")],
     excludes=[
         # Grounding DINO is optional and left out of the packaged app (SAM-only detection)
         "transformers", "tokenizers", "huggingface_hub",
@@ -38,6 +38,7 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name="StecciMappingTool",
+    icon=str(ROOT / "stecci" / "assets" / "icon.ico"),     # Explorer / taskbar icon of the .exe
     console=False,
     upx=False,
 )

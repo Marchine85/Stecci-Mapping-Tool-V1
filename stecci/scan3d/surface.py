@@ -301,6 +301,15 @@ def boundary_edges(scan: Scan, seg: np.ndarray, stone: np.ndarray) -> tuple[np.n
     return scan.adj[seg_e, 2:4], scan.adj[out_e, 2:4]
 
 
+def selection_edges(scan: Scan, seg: np.ndarray, stone: np.ndarray, selected) -> np.ndarray:
+    """Welded vertex pairs on the outline of the selected segments (selected face next to an unselected one)."""
+    if not len(selected):
+        return np.zeros((0, 2), np.int32)
+    insel = np.isin(seg, np.fromiter(selected, np.int64)) & stone
+    a, b = scan.adj[:, 0], scan.adj[:, 1]
+    return scan.adj[insel[a] != insel[b], 2:4]
+
+
 def class_patches(scan: Scan, cls_face: np.ndarray, stone: np.ndarray) -> dict[int, int]:
     comp = face_components(scan, stone, same=cls_face)
     m = comp >= 0

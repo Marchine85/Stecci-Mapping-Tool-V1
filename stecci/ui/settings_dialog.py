@@ -4,14 +4,15 @@ from __future__ import annotations
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QFileDialog, QFormLayout,
                                QHBoxLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QWidget)
 
-from ..config import SAM_MODELS, SEG_MODES, UI_THEMES, UNWRAP_METHODS, Settings
+from ..config import SAM_MODELS, SEG_MODES, SPINNERS, UI_THEMES, UNWRAP_METHODS, Settings
 from ..models import device_description
 from . import theme
 
 
 def _heading(text: str) -> QLabel:
     lab = QLabel(text)
-    lab.setStyleSheet("font-weight: 600; font-size: 13px; padding-top: 10px;")
+    lab.setObjectName("SettingsHeading")      # bold, see theme.style_sheet
+    lab.setContentsMargins(0, 10, 0, 0)       # space above; no side offset, so it lines up with the labels
     return lab
 
 
@@ -32,10 +33,17 @@ class SettingsDialog(QDialog):
                               "the previous one.")
         self.theme.currentIndexChanged.connect(lambda: theme.apply(self.theme.currentData()))
         f.addRow("Theme", self.theme)
+        self.spinner = QComboBox()
+        for value, label in SPINNERS:
+            self.spinner.addItem(label, value)
+        self.spinner.setCurrentIndex(max(0, self.spinner.findData(s.spinner)))
+        self.spinner.setToolTip("Shown while SAM or a long job runs.")
+        f.addRow("Loading animation", self.spinner)
 
         # ── models ──────────────────────────────────────────────────────────
         f.addRow(_heading("Models  ·  photos and 3D scans"))
         device = QLabel(device_description())       # fixed by the build (GPU / CPU) and the PC
+        device.setContentsMargins(5, 0, 0, 0)       # text lines up with the text inside the boxes below
         device.setToolTip("The GPU build uses an NVIDIA GPU when one is present, otherwise the CPU.\n"
                           "The CPU build always runs on the CPU.")
         f.addRow("Device", device)
@@ -149,6 +157,7 @@ class SettingsDialog(QDialog):
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.accepted.connect(self.accept)
         bb.rejected.connect(self.reject)
+        bb.setContentsMargins(0, 14, 0, 0)
         f.addRow(bb)
         self._base = s
 
@@ -163,7 +172,7 @@ class SettingsDialog(QDialog):
 
     def result_settings(self) -> Settings:
         d = self._base.to_dict()
-        d.update(theme=self.theme.currentData(), sam_model_type=self.sam_type.currentData(), sam_checkpoint=self.ckpt.text().strip(),
+        d.update(theme=self.theme.currentData(), spinner=self.spinner.currentData(), sam_model_type=self.sam_type.currentData(), sam_checkpoint=self.ckpt.text().strip(),
                  seg_mode=self.seg_mode.currentData(), colour_points=self.colour_pts.value(),
                  working_max_side=self.max_side.value(),
                  unwrap_method=self.unwrap.currentData(), unwrap_max_side=self.unwrap_px.value(),

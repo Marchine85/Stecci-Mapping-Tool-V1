@@ -22,8 +22,10 @@ from PySide6.QtWidgets import (QCheckBox, QColorDialog, QFrame, QGridLayout, QHB
 
 from .widgets import Section, capitalize_words, color_icon, set_role
 
-ASSIGN_HINT = ("Click / Drag: Assign · Right-Click: Unassign · Ctrl+Click / Drag: Select · M: Merge\n"
-               "Shift+Drag: Brush Class · Shift+Right-Drag: Brush Stone · Shift+Wheel: Brush Size")
+ASSIGN_HINT = ("Left/Right Click / Drag: Assign/Unassign\n"
+               "Shift+Left/Right Click / Drag: Brush/Unbrush\n"
+               "Ctrl+Left/Right Click / Drag: Select/Unselect\n"
+               "M: Merge Selected Segments")
 
 
 class Workspace(QWidget):
@@ -296,9 +298,20 @@ class Workspace(QWidget):
         ov.setSpacing(0)
         ov.addWidget(scroll, 1)
         vw = QVBoxLayout()
-        vw.setContentsMargins(10, 0, 10, 10)
+        vw.setContentsMargins(10, 10, 10, 10)    # top: gap to the last step card above
         vw.addWidget(bottom)
         ov.addLayout(vw)
+
+        # while the step cards scroll, the scrollbar narrows them: narrow the pinned card by the same
+        # amount so both share one right edge
+        sb = scroll.verticalScrollBar()
+
+        def align_bottom(*_):
+            extra = sb.sizeHint().width() if sb.maximum() > 0 else 0
+            vw.setContentsMargins(10, 10, 10 + extra, 10)
+
+        sb.rangeChanged.connect(align_bottom)
+        align_bottom()
         self.panel = panel
         hl = QHBoxLayout(self)
         hl.setContentsMargins(0, 0, 0, 0)
@@ -473,11 +486,11 @@ class Workspace(QWidget):
         if not self._require_segments():
             return
         if ctrl:
-            # Ctrl+drag continues what the first click did: add (or remove) every segment passed over
-            self._select_add = sid not in self.selected
+            # Ctrl+left selects, Ctrl+right unselects; dragging does the same to every segment passed over
+            self._select_add = left
             self._selecting = True
             self._last_assigned = sid
-            if sid:
+            if sid and (sid not in self.selected) == left:
                 self.selected ^= {sid}
                 self._refresh_selection_view()
             return

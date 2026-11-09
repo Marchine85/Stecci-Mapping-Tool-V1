@@ -1,8 +1,9 @@
 """Modern animated busy overlay shown over the canvas while a model job runs."""
 from __future__ import annotations
 
+import random
 import time
-from math import cos, radians, sin
+from math import cos, pi, radians, sin
 
 from PySide6.QtCore import QEvent, QPropertyAnimation, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QConicalGradient, QFont, QPainter, QPainterPath, QPen
@@ -13,6 +14,9 @@ from . import theme
 ACCENT = QColor(64, 140, 255)
 ACCENT_2 = QColor(56, 210, 180)
 ACCENT_3 = QColor(255, 92, 92)
+
+GRID, TILE, GAP = 3, 18, 5      # tile grid spinner: 3×3 tiles of 18 px, 5 px apart
+FLIP_S = 0.35                   # duration of one tile flip
 
 
 class BusyOverlay(QWidget):
@@ -26,6 +30,8 @@ class BusyOverlay(QWidget):
         self.message = ""
         self._angle = 0.0
         self._t0 = 0.0
+        self.style = "grid"          # "grid" (tile grid) or "rings" (rotating rings); set from Settings
+        self._tiles: list[dict] = []
         self._timer = QTimer(self)
         self._timer.setInterval(16)
         self._timer.timeout.connect(self._tick)
@@ -46,6 +52,7 @@ class BusyOverlay(QWidget):
         if message is not None:
             self.message = message
         self._t0 = time.monotonic()
+        self._tiles = []                 # fresh random grid each time
         self.setGeometry(self.parentWidget().rect())
         self.raise_()
         self.show()
@@ -109,8 +116,36 @@ class BusyOverlay(QWidget):
         p.setPen(QPen(QColor(t.line) if t.styled else QColor(255, 255, 255, 28), 1))
         p.drawPath(path)
 
-        # spinner: three gradient arcs, each turning opposite to its neighbour
+        # spinner (Settings → Appearance → Loading animation)
         cx, cy = card.center().x(), card.top() + 72
+        if self.style == "rings":
+            self._paint_rings(p, t, cx, cy)
+        else:
+            self._paint_grid(p, t, cx, cy)
+
+        # texts
+        p.setPen(QColor(t.ov_title))
+        f = QFont(self.font())
+        f.setPointSizeF(12.5)
+        f.setWeight(QFont.DemiBold)
+        p.setFont(f)
+        p.drawText(QRectF(card.left(), cy + 46, cw, 24), Qt.AlignCenter, self.title)
+
+        f.setPointSizeF(9.5)
+        f.setWeight(QFont.Normal)
+        p.setFont(f)
+        p.setPen(QColor(t.ov_msg))
+        msg = p.fontMetrics().elidedText(self.message, Qt.ElideRight, cw - 40)
+        p.drawText(QRectF(card.left(), cy + 72, cw, 20), Qt.AlignCenter, msg)
+
+        p.setPen(QColor(t.ov_time))
+        p.drawText(QRectF(card.left(), cy + 94, cw, 20), Qt.AlignCenter,
+                   f"{time.monotonic() - self._t0:.0f} s")
+        p.end()
+
+    # ── spinners ─────────────────────────────────────────────────────────────
+    def _paint_rings(self, p: QPainter, t, cx: float, cy: float):
+        """Three gradient arcs, each turning opposite to its neighbour."""
         for radius, width, color, speed, span in ((32, 6, QColor(t.accent) if t.styled else ACCENT, 1.0, 280),
                                                   (19, 4, ACCENT_2, -1.6, 200),
                                                   (9, 3, ACCENT_3, 2.4, 160)):
@@ -149,22 +184,37 @@ class BusyOverlay(QWidget):
             p.drawEllipse(QRectF(hx - width / 2, hy - width / 2, width, width))
             p.setBrush(Qt.NoBrush)
 
-        # texts
-        p.setPen(QColor(t.ov_title))
-        f = QFont(self.font())
-        f.setPointSizeF(12.5)
-        f.setWeight(QFont.DemiBold)
-        p.setFont(f)
-        p.drawText(QRectF(card.left(), cy + 46, cw, 24), Qt.AlignCenter, self.title)
+    def _grid_colours(self, t) -> list[QColor]:
+        if t.steps:                                   # the theme's step colours (Nocturne)
+            return [QColor(c) for c, _, _ in t.steps]
+        return [QColor(t.accent) if t.styled else ACCENT, ACCENT_2, ACCENT_3, QColor(255, 181, 71)]
 
-        f.setPointSizeF(9.5)
-        f.setWeight(QFont.Normal)
-        p.setFont(f)
-        p.setPen(QColor(t.ov_msg))
-        msg = p.fontMetrics().elidedText(self.message, Qt.ElideRight, cw - 40)
-        p.drawText(QRectF(card.left(), cy + 72, cw, 20), Qt.AlignCenter, msg)
+    def _paint_grid(self, p: QPainter, t, cx: float, cy: float):
+        """3×3 tiles; each one flips over (a card turn about its horizontal axis) to a random colour."""
+        now = time.monotonic()
+        colours = self._grid_colours(t)
+        if len(self._tiles) != GRID * GRID:
+            self._tiles = [{"c": random.choice(colours + [None]), "prev": None, "t0": -1.0,
+                            "next": now + random.uniform(0.05, 0.9)} for _ in range(GRID * GRID)]
+        dim = QColor(t.line)
+        span = GRID * TILE + (GRID - 1) * GAP
+        x0, y0 = cx - span / 2, cy - span / 2
+        p.setPen(Qt.NoPen)
+        for k, tile in enumerate(self._tiles):
+            if now >= tile["next"]:                   # start a flip to a different colour (or to "off")
+                choices = [c for c in colours + [None, None] if c != tile["c"]]
+                tile["prev"], tile["c"], tile["t0"] = tile["c"], random.choice(choices), now
+                tile["next"] = now + FLIP_S + random.uniform(0.25, 1.1)
+            f = (now - tile["t0"]) / FLIP_S
+            if 0 <= f < 1:
+                scale = abs(cos(pi * f))              # 1 → 0 (edge-on) → 1
+                col = tile["prev"] if f < 0.5 else tile["c"]
+            else:
+                scale, col = 1.0, tile["c"]
+            h = max(TILE * scale, 1.0)
+            x = x0 + (k % GRID) * (TILE + GAP)
+            y = y0 + (k // GRID) * (TILE + GAP) + (TILE - h) / 2
+            p.setBrush(col if col is not None else dim)
+            p.drawRect(QRectF(x, y, TILE, h))
+        p.setBrush(Qt.NoBrush)
 
-        p.setPen(QColor(t.ov_time))
-        p.drawText(QRectF(card.left(), cy + 94, cw, 20), Qt.AlignCenter,
-                   f"{time.monotonic() - self._t0:.0f} s")
-        p.end()

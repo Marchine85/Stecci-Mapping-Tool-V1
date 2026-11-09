@@ -23,7 +23,7 @@ PROJECT_FILTER = f"Stecci photo project (*{PROJECT_EXT_2D})"
 LEGEND_PCT_MIN, LEGEND_PCT_MAX = 50, 200     # legend size slider (100 % = automatic size)
 # brush sizes in px: (default, min, max)
 BRUSH_LIMITS = {"brush": (5, 1, 20),       # cracks
-                "paint": (50, 10, 100)}    # class brush (Shift+drag)
+                "paint": (50, 5, 100)}     # class brush (Shift+drag)
 DISPLAY_VERSION = 4       # bump when defaults change; RESET_KEYS says which stored values to drop
 RESET_KEYS = {2: ("boundary_color", "outline_color"),
               3: ("dim_strength",),
@@ -41,7 +41,7 @@ HELP_HTML = """
 <li>If needed, <b>Refine outline</b> (R): drag a box, left-click = include, right-click = exclude.</li>
 <li><b>Segmentation</b>: set the <b>fidelity</b> and press <b>Segment</b> (Ctrl+G). Fidelity 0 = off: the whole stone is one segment.</li>
 <li><b>Assign classes</b>: pick a class (keys 0–9), click or drag over segments. Right-click = unassign.
-Ctrl+click / Ctrl+drag = select segments, <b>M</b> = merge them. <b>Split Segments Manually</b> (X): draw a line across a segment.
+Ctrl+left click / drag = select segments, Ctrl+right = unselect, <b>M</b> = merge them. <b>Split Segments Manually</b> (X): draw a line across a segment.
 <br><b>Shift+drag</b> brushes the active class freely, Shift+right-drag brushes Unassigned/Stone, Shift+wheel = brush size.</li>
 <li><b>Draw cracks</b> (B): left-drag paints, right-drag erases (eraser = 5× the brush size). <b>[ ]</b> or Ctrl+wheel = brush size.</li>
 <li><b>Export</b> (Ctrl+E): enter the stećak name and site information; writes <i>name</i>.png (as on screen), <i>name</i>_surroundings.png, <i>name</i>_stone_outlines.png, <i>name</i>_white.png (class map), <i>name</i>_cracks.png, <i>name</i>_stone.png and <i>name</i>.json (measurements).</li>

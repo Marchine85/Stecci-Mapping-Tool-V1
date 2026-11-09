@@ -73,6 +73,8 @@ class Section(QFrame):
     def __init__(self, number: int | None, title: str, menu: QMenu | None = None):
         super().__init__()
         self.setObjectName("Section")
+        if number is not None:
+            self.setProperty("step", str(number))     # per-step colours (theme.Theme.steps)
         v = QVBoxLayout(self)
         v.setContentsMargins(14, 12, 14, 14)
         v.setSpacing(8)

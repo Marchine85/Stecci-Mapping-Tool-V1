@@ -158,6 +158,12 @@ UI_THEMES = [
     ("graphite", "Graphite Pro  ·  black, amber"),
 ]
 
+# loading animation of the busy overlay (ui/busy_overlay.py); first entry is the default
+SPINNERS = [
+    ("grid", "Tile grid  ·  3×3 tiles flipping colours (default)"),
+    ("rings", "Rotating rings"),
+]
+
 SETTINGS_VERSION = 2              # 2: Nocturne became the default theme
 
 
@@ -165,6 +171,7 @@ SETTINGS_VERSION = 2              # 2: Nocturne became the default theme
 class Settings:
     version: int = SETTINGS_VERSION
     theme: str = UI_THEMES[0][0]    # appearance (ui/theme.py)
+    spinner: str = SPINNERS[0][0]    # loading animation
     # ── models (both workspaces) ──
     sam_model_type: str = SAM_MODELS[0][0]
     sam_checkpoint: str = ""        # empty = search known folders
@@ -207,6 +214,8 @@ class Settings:
             if k == "unwrap_method" and v not in dict(UNWRAP_METHODS):
                 continue
             if k == "theme" and v not in dict(UI_THEMES):
+                continue
+            if k == "spinner" and v not in dict(SPINNERS):
                 continue
             if k == "use_dino":                 # no UI switch: an old saved "on" must not stick
                 continue
