@@ -1,0 +1,14 @@
+# GPU:  pip install torch==2.14.1 torchvision==0.29.1 --index-url https://download.pytorch.org/whl/cu126
+# CPU:  pip install torch==2.14.1 torchvision==0.29.1 --index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1
+torchvision==0.29.1
+segment-anything==1.0
+PySide6==6.12.0
+PyOpenGL==3.1.10
+numpy==2.5.4
+scipy==1.18.1
+opencv-python==5.0.0.93
+pillow==13.0.0
+trimesh==5.2.0
+fast_simplification==0.2.0
+# transformers==5.22.1   # optional: only for the Grounding DINO photo backend (use_dino in config.py)

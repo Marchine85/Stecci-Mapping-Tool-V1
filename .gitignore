@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv-cpu/
+venv/
+
+# model weights (large; see README -> Models)
+models/
+*.pth
+*.pt
+*.safetensors
+
+# user data
+*.stecci
+*.stecci3d
+*.glb
+exports/
+export/
+
+# build output
+build/
+dist/
+selftest.log
+
+# IDE / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
